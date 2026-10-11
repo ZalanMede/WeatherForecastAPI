@@ -241,10 +241,10 @@ app.patch('/users/:uid/', (req, res) => {
 
 // Delete Profile
 app.delete('/users/:uid', (req, res) => {
-    const uid = req.params.uid;
     const loggedUserID = req.body.luid;
+    const uid = req.params.uid;
 
-    if (!uid) {
+    if (!uid || !loggedUserID) {
         return res.status(400).json({error: "Missing user identifier"});
     }
 
@@ -263,6 +263,97 @@ app.delete('/users/:uid', (req, res) => {
 
         return res.status(200).json({message: "No deletion occured!"});
     });
+});
+
+// WEATHER ENDPOINTS -----
+
+// Create forecast
+app.post('/forecast', (req, res) => {
+    // data needs to have: data.date, data.loc, data.tMin, data.tMax, data.weaType, data.prec, data.precProb, data.windSpeed, data.windDir, data.humid, data.press, data.uv
+    const {data, luid} = req.body;
+
+    if (!data || !luid ) {
+        return res.status(400).json({error: "Missing required fields"});
+    }
+
+    pool.query("SELECT role FROM users WHERE id = ?", [luid], (error, _results) => {
+        if (error) {
+            return res.status(500).json({error: "Database query error"});
+        }
+
+        if (results.length == 0) {
+            return res.status(400).json({error: "No users with this ID"});
+        }
+
+        if (results[0].role != "admin") {
+            return res.status(403).json({error: "You don't have permission to create forecasts!"});
+        }
+
+        // Check if record already exists within almost an hour in both directions
+        pool.query("SELECT * FROM weather WHERE date BETWEEN DATEADD(SECOND,-3599,?) AND DATEADD(SECOND,3599,?)", [data.date, data.date], (error1, results1) => {
+            if (error1) {
+                return res.status(500).json({error: "Database query error"});
+            }
+
+            if (results1.length == 0) {
+                pool.query("INSERT INTO weather (date, location, temp_min, temp_max, weather_type, precipitation, precipitation_prob, wind_speed, wind_direction, humidity, pressure, uv_index) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [data.date, data.loc, data.tMin, data.tMax, data.weaType, data.prec, data.precProb, data.windSpeed, data.windDir, data.humid, data.press, data.uv], (error1, _results) => {
+                    if (error1) {
+                        return res.status(500).json(`Database query error: ${error1}`);
+                    }
+
+                    return res.status(200).json({message: "Weather forecast successfully logged!"});
+                });
+            } else {
+                return res.status(400).json({error: "There is already a forecast within an hour of the set date!"})
+            }
+        });
+    });
+});
+
+// Get forecast for guest by location
+app.post('/forecast', (req, res) => {
+    const {datetime, location} = req.body;
+
+    pool.query("SELECT location, temp_min, temp_max, weather_type, precipitation FROM weather WHERE location = ? AND date BETWEEN DATEADD(SECOND,-3599,?) AND DATEADD(SECOND,3599,?)", [location, datetime, datetime], (error, results) => {
+        if (error) {
+            return res.status(500).json({error: "Database query error"});
+        }
+
+        if (results.length == 0) {
+            return res.status(400).json({error: "No records for this datetime within approx. an hour!"});
+        }
+
+        return res.status(200).json(results);
+    });
+});
+
+// Get forecast for user by location
+app.post('/forecast/:uid', (req, res) => {
+    const uid = req.params.uid;
+    const {datetime, location} = req.body;
+
+    pool.query("SELECT * FROM users WHERE id = ?", [uid], (error, results) => {
+        if (error) {
+            return res.status(500).json({error: "Database query error"});
+        }
+        
+        if (results.length == 0) {
+            return res.status(400).json({error: "No such user for request"})
+        }
+
+        pool.query("SELECT date, location, temp_min, temp_max, weather_type, precipitation, precipitation_prob, wind_speed, wind_direction, humidity, pressure, uv_index FROM weather WHERE location = ? AND date BETWEEN DATEADD(SECOND,-3599,?) AND DATEADD(SECOND,3599,?)", [location, datetime, datetime], (error1, results1) => {
+            if (error1) {
+                return res.status(500).json({error: "Database query error"});
+            }
+
+            if (results1.length == 0) {
+                return res.status(400).json({error: "No records for this datetime within approx. an hour!"});
+            }
+
+            return res.status(200).json(results1);
+        });
+    });
+    
 });
 
 // ADMIN ENDPOINTS -----
