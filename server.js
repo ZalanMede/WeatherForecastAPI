@@ -74,7 +74,7 @@ app.post('/users/register',  (req, res) => {
                 return res.status(500).json({error: "Database query error"});
             }
 
-            res.status(201).json({message: "User registered succesfully", results: results[0]});
+            return res.status(201).json({message: "User registered succesfully", results: results[0]});
         });
     });
 });
@@ -116,10 +116,10 @@ app.post('/users/login', (req, res) => {
             if (error) {
                 return res.status(500).json({error: "Database query error"});
             }
-        });
 
-        // If user exists with email and password
-        return res.status(200).json({message: "You've been successfully logged in!", loggedUser: loggedUser});
+            // If user exists with email and password
+            return res.status(200).json({message: "You've been successfully logged in!", loggedUser: loggedUser});
+        });
     });
 });
 
@@ -268,7 +268,7 @@ app.delete('/users/:uid', (req, res) => {
 // WEATHER ENDPOINTS -----
 
 // Create forecast
-app.post('/forecast', (req, res) => {
+app.put('/forecast', (req, res) => {
     // data needs to have: data.date, data.loc, data.tMin, data.tMax, data.weaType, data.prec, data.precProb, data.windSpeed, data.windDir, data.humid, data.press, data.uv
     const {data, luid} = req.body;
 
@@ -276,7 +276,7 @@ app.post('/forecast', (req, res) => {
         return res.status(400).json({error: "Missing required fields"});
     }
 
-    pool.query("SELECT role FROM users WHERE id = ?", [luid], (error, _results) => {
+    pool.query("SELECT role FROM users WHERE id = ?", [luid], (error, results) => {
         if (error) {
             return res.status(500).json({error: "Database query error"});
         }
@@ -381,7 +381,7 @@ app.post('/admin/users', (req, res) => {
 
         pool.query("SELECT * FROM users", (error1, results1) => {
             if (error1) {
-                return res.status(500).json(`Database query error: ${error}`);
+                return res.status(500).json(`Database query error: ${error1.message}`);
             } else {
                 return res.status(200).json(results1);
             }
