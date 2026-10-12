@@ -119,7 +119,7 @@ app.post('/users/login', (req, res) => {
         });
 
         // If user exists with email and password
-        res.status(200).json({message: "You've been successfully logged in!", loggedUser: loggedUser});
+        return res.status(200).json({message: "You've been successfully logged in!", loggedUser: loggedUser});
     });
 });
 
