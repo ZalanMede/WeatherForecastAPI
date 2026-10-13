@@ -84,7 +84,6 @@ app.post('/users/login', (req, res) => {
     const {email, password} = req.body;
 
     // Validate inputs
-
     if (!email || !password) {
         return res.status(400).json({error: "Missing required fields"});
     }
@@ -267,8 +266,10 @@ app.delete('/users/:uid', (req, res) => {
 
 // WEATHER ENDPOINTS -----
 
+// Admin weather endpoints
+
 // Create forecast
-app.put('/forecast', (req, res) => {
+app.post('/forecast', (req, res) => {
     // data needs to have: data.date, data.loc, data.tMin, data.tMax, data.weaType, data.prec, data.precProb, data.windSpeed, data.windDir, data.humid, data.press, data.uv
     const {data, luid} = req.body;
 
@@ -310,8 +311,42 @@ app.put('/forecast', (req, res) => {
     });
 });
 
+// Get all forecasts
+app.post('/forecast/admin', (req, res) => {
+    const {luid, dateFrom, dateTo, location} = req.body;
+
+    pool.query("SELECT * FROM users WHERE id = ?", [luid], (error, results) => {
+        if (error) {
+            return res.status(500).json({error: "Database query error"});
+        }
+        
+        if (results.length == 0) {
+            return res.status(400).json({error: "No such user for request"})
+        }
+        
+        if (results[0].role != "admin") {
+            return res.status(403).json({error: "You don't have permission to view all forecasts!"});
+        }
+
+        pool.query("SELECT * FROM weather WHERE location = ? AND date BETWEEN ? AND ?", [location, dateFrom, dateTo], (error1, results1) => {
+            if (error1) {
+                return res.status(500).json({error: "Database query error"});
+            }
+
+            if (results1.length == 0) {
+                return res.status(400).json({error: "No records for this datetime within approx. an hour!"});
+            }
+
+            return res.status(200).json(results1);
+        });
+    });
+    
+});
+
+// User and guest weather endpoints
+
 // Get forecast for guest by location
-app.post('/forecast', (req, res) => {
+app.post('/forecast/guest', (req, res) => {
     const {datetime, location} = req.body;
 
     pool.query("SELECT location, temp_min, temp_max, weather_type, precipitation FROM weather WHERE location = ? AND date BETWEEN DATEADD(SECOND,-3599,?) AND DATEADD(SECOND,3599,?)", [location, datetime, datetime], (error, results) => {
@@ -328,11 +363,10 @@ app.post('/forecast', (req, res) => {
 });
 
 // Get forecast for user by location
-app.post('/forecast/:uid', (req, res) => {
-    const uid = req.params.uid;
-    const {datetime, location} = req.body;
+app.post('/forecast/user', (req, res) => {
+    const {luid, datetime, location} = req.body;
 
-    pool.query("SELECT * FROM users WHERE id = ?", [uid], (error, results) => {
+    pool.query("SELECT * FROM users WHERE id = ?", [luid], (error, results) => {
         if (error) {
             return res.status(500).json({error: "Database query error"});
         }
@@ -353,7 +387,33 @@ app.post('/forecast/:uid', (req, res) => {
             return res.status(200).json(results1);
         });
     });
-    
+});
+
+// Get forecast calendar
+app.post('/forecast/user/cal', (req, res) => {
+    const {luid, location} = req.body;
+
+    pool.query("SELECT * FROM users WHERE id = ?", [luid], (error, results) => {
+        if (error) {
+            return res.status(500).json({error: "Database query error"});
+        }
+        
+        if (results.length == 0) {
+            return res.status(400).json({error: "No such user for request"})
+        }
+
+        pool.query("SELECT date, location, temp_min, temp_max, weather_type, precipitation, precipitation_prob, wind_speed, wind_direction, humidity, pressure, uv_index FROM weather WHERE location = ?", [location, datetime, datetime], (error1, results1) => {
+            if (error1) {
+                return res.status(500).json({error: "Database query error"});
+            }
+
+            if (results1.length == 0) {
+                return res.status(400).json({error: "No records for this location"});
+            }
+
+            return res.status(200).json(results1);
+        });
+    });
 });
 
 // ADMIN ENDPOINTS -----
