@@ -1,0 +1,3 @@
+@host = {{$dotenv DB_HOST}}
+@port = {{$dotenv APP_PORT}}
+@server = http://{{host}}:{{port}}

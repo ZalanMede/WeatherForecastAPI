@@ -266,7 +266,7 @@ app.delete('/users/:uid', (req, res) => {
 
 // WEATHER ENDPOINTS -----
 
-// Admin weather endpoints
+// Admin weather endpoints ---
 
 // Create forecast
 app.post('/forecast', (req, res) => {
@@ -343,7 +343,94 @@ app.post('/forecast/admin', (req, res) => {
     
 });
 
-// User and guest weather endpoints
+// Edit forecast
+app.patch('/forecast', (req, res) => {
+    // data needs to have: data.date, data.loc, data.tMin, data.tMax, data.weaType, data.prec, data.precProb, data.windSpeed, data.windDir, data.humid, data.press, data.uv
+    const {forecastID, luid, data} = req.body;
+
+    if (!forecastID || !luid) {
+        return res.status(400).json({error: "Missing user identifier"});
+    }
+
+    pool.query("SELECT * FROM users WHERE ID=?", [luid], (error, results) => {
+        if (error) {
+            return res.status(500).json({error: "Database query error"});
+        }
+
+        if (results.length == 0) {
+            return res.status(400).json({error: "No such user with this ID!"});
+        }
+
+        if (results[0].role != "admin") {
+            return res.status(403).json({error: "You don't have permission to access this!"});
+        }
+
+        pool.query("SELECT * FROM weather WHERE ID=?", [forecastID], (error1, results1) => {
+            if (error1) {
+                return res.status(500).json({error: "Database query error"});
+            }
+
+            if (results1.length == 0) {
+                return res.status(200).json({message: "Weather forecast with this ID doesn't exist"});
+            }
+
+            pool.query("UPDATE weather SET date=?, location=?, temp_min=?, temp_max=?, weather_type=?, precipitation=?, precipitation_prob=?, wind_speed=?, wind_direction=?, humidity=?, pressure=?, uv_index=? WHERE ID=?", [data.date, data.loc, data.tMin, data.tMax, data.weaType, data.prec, data.precProb, data.windSpeed, data.windDir, data.humid, data.press, data.uv, forecastID], (error2, results2) => {
+                if (error2) {
+                    return res.status(500).json({error: "Database query error"});
+                }
+
+                if (results2.affectedRows == 1) {
+                    return res.status(200).json({message: "Weather forecast updated successfully!"})
+                }
+            });
+        });
+    });
+});
+
+// Delete forecast
+app.delete('/forecast', (req, res) => {
+    const {forecastID, luid} = req.body;
+
+    if (!forecastID || !luid) {
+        return res.status(400).json({error: "Missing identifiers"});
+    }
+
+    pool.query("SELECT * FROM users WHERE ID=?", [luid], (error, results) => {
+        if (error) {
+            return res.status(500).json({error: "Database query error"});
+        }
+
+        if (results.length == 0) {
+            return res.status(400).json({error: "No such user with this ID!"});
+        }
+
+        if (results[0].role != "admin") {
+            return res.status(403).json({error: "You don't have permission to access this!"});
+        }
+
+        pool.query("SELECT * FROM weather WHERE ID=?", [forecastID], (error1, results1) => {
+            if (error1) {
+                return res.status(500).json({error: "Database query error"});
+            }
+
+            if (results1.length == 0) {
+                return res.status(200).json({message: "Weather forecast with this ID doesn't exist"});
+            }
+
+            pool.query("DELETE FROM weather WHERE ID=?", [forecastID], (error2, results2) => {
+                if (error2) {
+                    return res.status(500).json({error: "Database query error"});
+                }
+
+                if (results2.affectedRows == 1) {
+                    return res.status(200).json({message: "Weather forecast deleted successfully!"})
+                }
+            });
+        });
+    });
+});
+
+// User and guest weather endpoints ---
 
 // Get forecast for guest by location
 app.post('/forecast/guest', (req, res) => {
@@ -566,7 +653,6 @@ app.delete('/admin/users', (req, res) => {
             });
         });
     });
-    
 });
 
 // --- START LISTENING ---

@@ -1,8 +1,9 @@
 @host = {{$dotenv DB_HOST}}
 @port = {{$dotenv APP_PORT}}
+@server = http://{{host}}:{{port}}
 
 ### Register
-POST http://{{host}}:{{port}}/users/register
+POST {{server}}/users/register
 Content-Type: application/json
 
 {
@@ -13,7 +14,7 @@ Content-Type: application/json
 }
 
 ### Login
-POST http://{{host}}:{{port}}/users/login
+POST {{server}}/users/login
 Content-Type: application/json
 
 {
