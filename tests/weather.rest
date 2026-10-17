@@ -1,3 +1,109 @@
 @host = {{$dotenv DB_HOST}}
 @port = {{$dotenv APP_PORT}}
-@server = http://{{host}}:{{port}}
+@server = http://{{host}}:{{port}}/forecast
+
+### --- data needs to have: 
+### ---
+### data.date(YYYY-MM-DD HH:mm:ss), data.loc(str), 
+### data.tMin(dec 5,1), data.tMax(dec 5,1), data.weaType(str), data.prec(dec 5,1), data.precProb(dec 5,1), 
+### data.windSpeed(dec 5,1), data.windDir(enum('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW')), 
+### data.humid(dec 5,1), data.press(dec 5,1), data.uv(dec 5,1)
+
+### Admin -- Create forecast
+POST {{server}}
+Content-Type: application/json
+
+{
+    "data": {
+        "date": "2026-10-15 02:00:00",
+        "loc": "Baja",
+        "tMin": 10.2,
+        "tMax": 19.6,
+        "weaType": "Cloudy",
+        "prec": 0.2,
+        "precProb": 2,
+        "windSpeed": 7.45,
+        "windDir": "SW",
+        "humid": 50,
+        "press": 1020.2,
+        "uv": 0.5
+    },
+    "luid": 4
+}
+
+### Admin -- Get all forecast
+POST {{server}}/admin
+Content-Type: application/json
+
+{
+    "luid": 4,
+    "location": "Baja"
+}
+
+### Admin -- Update forecast
+PATCH {{server}}
+Content-Type: application/json
+
+{
+    "forecastID": 4,
+    "data": {
+        "date": "2026-10-15 02:00:00",
+        "loc": "Baja",
+        "tMin": 12.2,
+        "tMax": 18.2,
+        "weaType": "Cloudy",
+        "prec": 0.4,
+        "precProb": 4,
+        "windSpeed": 9.45,
+        "windDir": "NW",
+        "humid": 45,
+        "press": 1017.6,
+        "uv": 0.4
+    },
+    "luid": 4
+}
+
+### Admin -- Delete forecast
+DELETE {{server}}
+Content-Type: application/json
+
+{
+    "forecastID": 4,
+    "luid": 4
+}
+
+### Guest -- Get forecast
+POST {{server}}/guest
+Content-Type: application/json
+
+{
+    "datetime": "2026-10-15",
+    "location": "Baja"
+}
+
+### User -- Get forecast
+POST {{server}}/user
+Content-Type: application/json
+
+{
+    "luid": 2,
+    "datetime": "2026-10-15",
+    "location": "Baja"
+}
+
+### User -- Get forecast calendar
+POST {{server}}/user/calendar
+Content-Type: application/json
+
+{
+    "luid": 2,
+    "location": "Baja"
+}
+
+### Guest -- Get forecast calendar
+POST {{server}}/guest/calendar
+Content-Type: application/json
+
+{
+    "location": "Baja"
+}

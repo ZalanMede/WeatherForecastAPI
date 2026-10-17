@@ -1,3 +1,36 @@
 @host = {{$dotenv DB_HOST}}
 @port = {{$dotenv APP_PORT}}
-@server = http://{{host}}:{{port}}
+@server = http://{{host}}:{{port}}/admin
+
+### Only users with role set to "admin" can run these
+### Make sure to double check that the luid is of a user that is an admin
+### uid = user being changed -> sometimes in the url, not body
+
+### Get all users
+POST {{server}}/users
+Content-Type: application/json
+
+{
+    "luid": 4
+}
+
+### Get specific user
+GET {{server}}/5
+Content-Type: application/json
+
+### Deny user
+PATCH {{server}}/status
+Content-Type: application/json
+
+{
+    "uid": 5,
+    "luid": 4
+}
+
+### Delete user
+DELETE {{server}}/5
+Content-Type: application/json
+
+{
+    "luid": 4
+}

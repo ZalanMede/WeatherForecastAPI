@@ -1,23 +1,47 @@
 @host = {{$dotenv DB_HOST}}
 @port = {{$dotenv APP_PORT}}
-@server = http://{{host}}:{{port}}
+@server = http://{{host}}:{{port}}/users
 
 ### Register
-POST {{server}}/users/register
+POST {{server}}/register
 Content-Type: application/json
 
 {
-    "name": "Gazsi",
-    "email": "gazsi@test.hu",
+    "name": "Jane",
+    "email": "youre_early@test.hu",
     "password": "Aa12345!",
     "confirm": "Aa12345!"
 }
 
 ### Login
-POST {{server}}/users/login
+POST {{server}}/login
 Content-Type: application/json
 
 {
-    "email": "gazsi@test.hu",
+    "email": "youre_early@test.hu",
     "password": "Aa12345!"
+}
+
+### Change Pass (change number to logged user ID)
+POST {{server}}/5/changepass
+Content-Type: application/json
+
+{
+    "oldpass": "Aa12345!",
+    "newpass": "Abc123!",
+    "confirm": "Abc123!"
+}
+
+### Get profile
+GET {{server}}/5
+Content-Type: application/json
+
+### Update profile (change number to logged user ID)
+PATCH {{server}}/5
+Content-Type: application/json
+
+{
+    "username": "John",
+    "email": "jhndoe@test.hu",
+    "luid": 5
 }
