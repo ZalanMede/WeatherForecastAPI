@@ -103,7 +103,7 @@ router.post('/:uid/changepass', (req, res) => {
     const {oldpass, newpass, confirm} = req.body;
     const uid = req.params.uid;
 
-    if (!oldpass || !newpass || !confirm) {
+    if (!oldpass || !newpass || !confirm || !uid) {
         return res.status(400).json({error: "Missing required fields"});
     }
 

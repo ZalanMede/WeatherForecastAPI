@@ -42,13 +42,13 @@ router.post('/', (req, res) => {
                     return res.status(200).json({message: "Weather forecast successfully logged!"});
                 });
             } else {
-                return res.status(400).json({error: "There is already a forecast within an hour of the set date!"})
+                return res.status(400).json({error: "There is already a forecast on that date!"})
             }
         });
     });
 });
 
-// Get all forecasts (limit 20)
+// Get all forecasts
 router.post('/admin', (req, res) => {
     const {luid, location} = req.body;
 
@@ -103,7 +103,7 @@ router.patch('/', (req, res) => {
     // data needs to have: data.date, data.loc, data.tMin, data.tMax, data.weaType, data.prec, data.precProb, data.windSpeed, data.windDir, data.humid, data.press, data.uv
     const {forecastID, luid, data} = req.body;
 
-    if (!forecastID || !luid) {
+    if (!forecastID || !luid || !data) {
         return res.status(400).json({error: "Missing user identifier"});
     }
 
@@ -129,13 +129,15 @@ router.patch('/', (req, res) => {
                 return res.status(200).json({message: "Weather forecast with this ID doesn't exist"});
             }
             
-            db.query("SELECT * FROM weather WHERE date=?", [data.date], (err, result) => {
+            db.query("SELECT * FROM weather WHERE date=? && location=?", [data.date, data.loc], (err, result) => {
                 if (err) {
                     return res.status(500).json({error: "Database query error"});
                 }
 
                 if (result.length > 0) {
-                    return res.status(400).json({message: "A forecast already exists on that date!"});
+                    if (result[0].ID != forecastID) {
+                        return res.status(400).json({message: "A forecast already exists on that date!"});
+                    }
                 }
 
                 db.query("UPDATE weather SET date=?, location=?, temp_min=?, temp_max=?, weather_type=?, precipitation=?, precipitation_prob=?, wind_speed=?, wind_direction=?, humidity=?, pressure=?, uv_index=? WHERE ID=?", [data.date, data.loc, data.tMin, data.tMax, data.weaType, data.prec, data.precProb, data.windSpeed, data.windDir, data.humid, data.press, data.uv, forecastID], (error2, results2) => {
@@ -201,6 +203,10 @@ router.delete('/', (req, res) => {
 router.post('/guest', (req, res) => {
     const {datetime, location} = req.body;
 
+    if (!datetime || !location) {
+        return res.status(400).json({error: "Missing identifiers"});
+    }
+
     db.query("SELECT date, location, temp_min, temp_max, weather_type, precipitation FROM weather WHERE location = ? AND date BETWEEN ? AND DATE_ADD(?, INTERVAL 7 DAY)", [location, datetime, datetime], (error, results) => {
         if (error) {
             return res.status(500).json({error: "Database query error"});
@@ -217,6 +223,10 @@ router.post('/guest', (req, res) => {
 // Get forecast for user by location
 router.post('/user', (req, res) => {
     const {luid, datetime, location} = req.body;
+
+    if (!luid || !datetime || !location) {
+        return res.status(400).json({error: "Missing identifiers"});
+    }
 
     db.query("SELECT * FROM users WHERE id = ?", [luid], (error, results) => {
         if (error) {
@@ -245,6 +255,10 @@ router.post('/user', (req, res) => {
 router.post('/user/calendar', (req, res) => {
     const {luid, location} = req.body;
 
+    if (!location || !luid) {
+        return res.status(400).json({error: "Missing identifiers"});
+    }
+
     db.query("SELECT * FROM users WHERE id = ?", [luid], (error, results) => {
         if (error) {
             return res.status(500).json({error: "Database query error"});
@@ -271,6 +285,10 @@ router.post('/user/calendar', (req, res) => {
 // Get forecast calendar for user
 router.post('/guest/calendar', (req, res) => {
     const location = req.body.location;
+
+    if (!location) {
+        return res.status(400).json({error: "Missing identifiers"});
+    }
 
     db.query("SELECT date, location, temp_min, temp_max, weather_type, precipitation FROM weather WHERE location = ?", [location], (error1, results1) => {
         if (error1) {
