@@ -28,7 +28,7 @@ router.post('/', (req, res) => {
         }
 
         // Check if record already exists within almost an hour in both directions
-        db.query("SELECT * FROM weather WHERE date BETWEEN DATE_ADD(?, INTERVAL -3599 SECOND) AND DATE_ADD(?, INTERVAL 3599 SECOND)", [data.date, data.date], (error1, results1) => {
+        db.query("SELECT * FROM weather WHERE date = ?", [data.date], (error1, results1) => {
             if (error1) {
                 return res.status(500).json({error: "Database query error"});
             }
@@ -48,7 +48,7 @@ router.post('/', (req, res) => {
     });
 });
 
-// Get all forecasts
+// Get all forecasts (limit 20)
 router.post('/admin', (req, res) => {
     const {luid, location} = req.body;
 
@@ -70,7 +70,7 @@ router.post('/admin', (req, res) => {
         }
 
         if (location) {
-            db.query("SELECT * FROM weather WHERE location = ?", [location], (error1, results1) => {
+            db.query("SELECT * FROM weather WHERE location = ? ORDER BY date DESC", [location], (error1, results1) => {
                 if (error1) {
                     return res.status(500).json({error: "Database query error"});
                 }
@@ -128,15 +128,25 @@ router.patch('/', (req, res) => {
             if (results1.length == 0) {
                 return res.status(200).json({message: "Weather forecast with this ID doesn't exist"});
             }
-
-            db.query("UPDATE weather SET date=?, location=?, temp_min=?, temp_max=?, weather_type=?, precipitation=?, precipitation_prob=?, wind_speed=?, wind_direction=?, humidity=?, pressure=?, uv_index=? WHERE ID=?", [data.date, data.loc, data.tMin, data.tMax, data.weaType, data.prec, data.precProb, data.windSpeed, data.windDir, data.humid, data.press, data.uv, forecastID], (error2, results2) => {
-                if (error2) {
+            
+            db.query("SELECT * FROM weather WHERE date=?", [data.date], (err, result) => {
+                if (err) {
                     return res.status(500).json({error: "Database query error"});
                 }
 
-                if (results2.affectedRows == 1) {
-                    return res.status(200).json({message: "Weather forecast updated successfully!"})
+                if (result.length > 0) {
+                    return res.status(400).json({message: "A forecast already exists on that date!"});
                 }
+
+                db.query("UPDATE weather SET date=?, location=?, temp_min=?, temp_max=?, weather_type=?, precipitation=?, precipitation_prob=?, wind_speed=?, wind_direction=?, humidity=?, pressure=?, uv_index=? WHERE ID=?", [data.date, data.loc, data.tMin, data.tMax, data.weaType, data.prec, data.precProb, data.windSpeed, data.windDir, data.humid, data.press, data.uv, forecastID], (error2, results2) => {
+                    if (error2) {
+                        return res.status(500).json({error: "Database query error"});
+                    }
+
+                    if (results2.affectedRows == 1) {
+                        return res.status(200).json({message: "Weather forecast updated successfully!"});
+                    }
+                });
             });
         });
     });
